@@ -136,7 +136,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
 <div class="wrap">
   <header>
     <h1>Pawnbroker</h1>
-    <p class="tag">Chess where everyone starts as a pawn. Captures earn points; points buy promotions.</p>
+    <p class="tag">Chess where everyone starts as a pawn. Every turn earns a point; points buy promotions.</p>
   </header>
 
   <div class="stage">
@@ -170,7 +170,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
       <summary>House rules</summary>
       <ul>
         <li>Both back rows start as pawns, apart from the Kings on e1 and e8.</li>
-        <li>Every capture earns 1 point, whatever was taken (en passant included).</li>
+        <li>A capture earns 1 point, whatever was taken (en passant included). A turn without a capture also earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of your turn.</li>
         <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9.</li>
         <li>Knights and Bishops can't be swapped for each other. Kings and Queens can't be upgraded.</li>
         <li>If an upgrade gives check, your turn ends there with no move. That isn't allowed while your own King is in check.</li>
@@ -304,12 +304,12 @@ function hasLegalTurn(s){
 function insufficient(s){
   const pcs=[];
   for(const row of s.board)for(const p of row)if(p&&p.t!=='K')pcs.push(p);
-  if(!pcs.length)return true;
-  if(pcs.length===1&&(pcs[0].t==='N'||pcs[0].t==='B')&&s.points[pcs[0].c]<2)return true;
-  return false;
+  // Points keep coming every turn, so any piece besides the Kings can eventually be upgraded to mate.
+  return !pcs.length;
 }
 function endTurn(ns,text){
   const mover=ns.turn;
+  ns.points[mover]++; // a capture earns 1 point and a turn without a capture also earns 1
   ns.turn=other(mover);ns.upgraded=false;ns.pending=null;
   if(mover==='b')ns.full++;
   const k=posKey(ns);ns.rep[k]=(ns.rep[k]||0)+1;
@@ -340,7 +340,7 @@ function doMove(s,mv,promo){
   const ns=clone(s),p=ns.board[mv.fr][mv.fc];
   if(!legalMoves(s,mv.fr,mv.fc).some(m=>m.tr===mv.tr&&m.tc===mv.tc))throw new Error('Illegal move');
   const cap=playOnBoard(ns.board,mv,promo);
-  if(cap){ns.points[p.c]++;ns.earned[p.c]++;}
+  if(cap)ns.earned[p.c]++;
   ns.half=(p.t==='P'||cap||s.upgraded)?0:ns.half+1;
   ns.ep=mv.double?[(mv.fr+mv.tr)/2,mv.fc]:null;
   ns.last={fr:mv.fr,fc:mv.fc,tr:mv.tr,tc:mv.tc};
@@ -398,7 +398,7 @@ function statusText(){
   }
   const chk=inCheck(S.board,S.turn);
   if(S.upgraded)return[`${t} upgraded. Now make a move.`,chk?'You are in check and must escape it.':'No more upgrades this turn.'];
-  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. Captures earn 1 point.')];
+  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. Every turn earns 1 point.')];
 }
 
 function renderPlayers(){
