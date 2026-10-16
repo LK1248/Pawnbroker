@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pawnbroker Chess</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +17,8 @@
   --body:"Karla",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   --pieces:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Arial Unicode MS",sans-serif;
-  --board:min(calc(100vw - 32px), 74vh, 600px);
+  --shop:64px;
+  --board:min(calc(100vw - 32px), 70vh, 600px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#111613; --surface:#19201C; --ink:#E3E9E2; --muted:#93A198; --line:#2D3832;
@@ -32,10 +34,10 @@
 html,body{min-height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
-.wrap{max-width:1040px;margin:0 auto;display:grid;gap:24px;grid-template-columns:1fr;justify-items:center}
+.wrap{max-width:1110px;margin:0 auto;display:grid;gap:20px;grid-template-columns:1fr;justify-items:center}
 @media (min-width:900px){
-  :root{--board:min(calc(100vw - 32px - 340px - 28px), 86vh, 640px)}
-  .wrap{grid-template-columns:auto 340px;align-items:start;gap:28px;justify-items:stretch}
+  :root{--board:min(calc(100vw - 32px - 340px - var(--shop) - 64px), 86vh, 640px)}
+  .wrap{grid-template-columns:auto var(--shop) 340px;align-items:start;gap:20px;justify-items:stretch}
 }
 header{grid-column:1/-1;width:100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
@@ -71,6 +73,24 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);lin
 .promo-row button:hover,.promo-row button:focus-visible{background:var(--sel);outline:none}
 .promo-row .pc{font-size:calc(var(--board)/11)}
 
+/* Upgrade column: a row under the board on phones, a column beside it on wide screens */
+.shop{display:flex;align-items:center;gap:8px}
+.shop h2{margin:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.shop-btns{display:flex;gap:8px}
+.shop-btn{position:relative;width:var(--shop);height:var(--shop);padding:0;display:grid;place-items:center;border-radius:6px;
+  border:1px solid var(--line);background:var(--surface);cursor:pointer;font:inherit}
+.shop-btn .pc{font-size:calc(var(--shop) * .66)}
+.shop-btn .cost{position:absolute;right:4px;bottom:2px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent)}
+.shop-btn .chkb{position:absolute;left:5px;top:1px;font-weight:700;color:var(--check)}
+.shop-btn:not(:disabled){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.shop-btn:not(:disabled):hover,.shop-btn:focus-visible{background:var(--accent-soft);outline:none}
+.shop-btn:disabled{cursor:not-allowed;opacity:.38;filter:grayscale(1)}
+.shop-btn.cur{opacity:.6;box-shadow:inset 0 0 0 2px var(--muted)}
+@media (min-width:900px){
+  .shop{flex-direction:column;align-self:center}
+  .shop-btns{flex-direction:column}
+}
+
 /* Ledger */
 .ledger{width:100%;max-width:600px;display:grid;gap:16px;min-width:0}
 .status{font-family:var(--display);font-size:22px;font-weight:500;line-height:1.2;margin:0;text-wrap:balance}
@@ -91,16 +111,6 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);lin
 .panel h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--muted);font-weight:700}
 .panel p{margin:0}
 .muted{color:var(--muted);font-size:13px}
-.offers{display:grid;grid-template-columns:1fr;gap:6px}
-.offer{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font:inherit;text-align:left}
-.offer:hover:not(:disabled),.offer:focus-visible{border-color:var(--accent);background:var(--accent-soft);outline:none}
-.offer:disabled{cursor:not-allowed;opacity:.5}
-.offer .pc{font-size:28px;color:var(--ink);text-shadow:none}
-.offer .lbl{display:grid;line-height:1.15;min-width:0}
-.offer .lbl b{font-size:14px}
-.offer .lbl span{font-size:12px;color:var(--muted)}
-.offer .cost{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--accent);white-space:nowrap}
-.offer.chk .lbl span{color:var(--check)}
 .prices{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:13px;font-variant-numeric:tabular-nums}
 .prices dt{font-family:var(--mono);color:var(--muted)}
 .prices dd{margin:0}
@@ -135,6 +145,11 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
       <div class="promo-card"><p>Promote pawn to</p><div class="promo-row" id="promoRow"></div>
         <button class="btn" id="promoCancel" type="button">Cancel</button></div>
     </div>
+  </div>
+
+  <div class="shop" role="group" aria-labelledby="shopTitle">
+    <h2 id="shopTitle">Upgrade</h2>
+    <div class="shop-btns" id="shopBtns"></div>
   </div>
 
   <aside class="ledger">
@@ -398,28 +413,45 @@ function renderPlayers(){
   }
 }
 
-function renderCounter(){
-  const el=$('counter');
-  const head='<h2>Upgrade counter</h2>';
-  if(S.result){el.innerHTML=head+'<p class="muted">The game is over.</p>';return;}
-  if(S.upgraded){el.innerHTML=head+`<p class="muted">You’ve used this turn’s upgrade. Make your move.</p>`;return;}
+function selectedOwn(){
   const p=sel&&S.board[sel[0]][sel[1]];
-  if(!p||p.c!==S.turn){
-    el.innerHTML=head+`<p class="muted">Select one of your pieces to see its upgrades. You have ${S.points[S.turn]} point${S.points[S.turn]===1?'':'s'}.</p>
+  return p&&p.c===S.turn&&!S.result?p:null;
+}
+function shopInfo(p,t,o){
+  if(!p)return S.result?'Game over':'Select one of your pieces';
+  if(o)return o.ok?(o.check?'Gives check, ends your turn':'Then make your move'):o.reason;
+  if(p.t===t)return`Already a ${NAME[t]}`;
+  if(p.t==='K'||p.t==='Q')return`${NAME[p.t]}s can’t be upgraded`;
+  if(VAL[t]===VAL[p.t])return'Knights and Bishops can’t swap';
+  return'Not an upgrade';
+}
+function renderShop(){
+  const el=$('shopBtns');el.innerHTML='';
+  const p=selectedOwn(),opts=p?upgradeOptions(S,sel[0],sel[1]):[];
+  for(const t of['N','B','R','Q']){
+    const o=opts.find(x=>x.to===t),live=!!(o&&o.ok);
+    const b=document.createElement('button');
+    b.type='button';b.className='shop-btn'+(p&&p.t===t?' cur':'');b.disabled=!live;
+    b.innerHTML=`<span class="pc ${S.turn}">${GLYPH[t]+VS}</span>${o?`<span class="cost">${o.cost}</span>`:''}${live&&o.check?'<span class="chkb">+</span>':''}`;
+    b.title=`${NAME[t]}${o?` (${o.cost} pt)`:''}: ${shopInfo(p,t,o)}`;
+    b.setAttribute('aria-label',b.title);
+    if(live)b.addEventListener('click',()=>upgrade(t));
+    el.appendChild(b);
+  }
+}
+function renderCounter(){
+  const el=$('counter'),pts=S.points[S.turn],head='<h2>Upgrades</h2>';
+  if(S.result){el.innerHTML=head+'<p class="muted">The game is over.</p>';return;}
+  if(S.upgraded){el.innerHTML=head+'<p class="muted">You’ve used this turn’s upgrade. Make your move.</p>';return;}
+  const p=selectedOwn();
+  if(!p){
+    el.innerHTML=head+`<p class="muted">Click one of your pieces to see what it can become. You have ${pts} point${pts===1?'':'s'}.</p>
       <dl class="prices"><dt>2</dt><dd>Pawn → Knight or Bishop; Knight or Bishop → Rook</dd><dt>4</dt><dd>Pawn → Rook; Rook → Queen</dd><dt>6</dt><dd>Knight or Bishop → Queen</dd><dt>8</dt><dd>Pawn → Queen</dd></dl>`;
     return;
   }
   const opts=upgradeOptions(S,sel[0],sel[1]);
-  if(!opts.length){el.innerHTML=head+`<p class="muted">${p.t==='K'?'The King':'A Queen'} can’t be upgraded.</p>`;return;}
-  el.innerHTML=head+`<p class="muted">${NAME[p.t]} on ${sqName(sel[0],sel[1])}:</p><div class="offers"></div>`;
-  const box=el.querySelector('.offers');
-  for(const o of opts){
-    const b=document.createElement('button');b.type='button';b.className='offer'+(o.ok&&o.check?' chk':'');b.disabled=!o.ok;
-    const sub=o.ok?(o.check?'Gives check, ends turn':'Then move'):o.reason;
-    b.innerHTML=`<span class="pc">${GLYPH[o.to]+VS}</span><span class="lbl"><b>${NAME[o.to]}</b><span>${sub}</span></span><span class="cost">${o.cost} pt</span>`;
-    b.addEventListener('click',()=>upgrade(o.to));
-    box.appendChild(b);
-  }
+  el.innerHTML=head+`<p class="muted">${NAME[p.t]} on ${sqName(sel[0],sel[1])}. You have ${pts} point${pts===1?'':'s'}.</p>`+
+    (opts.length?`<dl class="prices">${opts.map(o=>`<dt>${o.cost}</dt><dd>${NAME[o.to]}: ${shopInfo(p,o.to,o)}</dd>`).join('')}</dl>`:`<p class="muted">${shopInfo(p,'K')}.</p>`);
 }
 
 function renderLog(){
@@ -435,7 +467,7 @@ function renderLog(){
 
 function render(){
   const[a,b]=statusText();$('status').innerHTML=`${a}<small>${b}</small>`;
-  renderBoard();renderPlayers();renderCounter();renderLog();
+  renderBoard();renderShop();renderPlayers();renderCounter();renderLog();
   $('undo').disabled=!history.length;
   $('flip').disabled=autoFlip;
   $('autoflip').checked=autoFlip;
