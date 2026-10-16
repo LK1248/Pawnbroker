@@ -170,7 +170,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
       <summary>House rules</summary>
       <ul>
         <li>Both back rows start as pawns, apart from the Kings on e1 and e8.</li>
-        <li>A capture earns 1 point, whatever was taken (en passant included). A turn without a capture also earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of your turn.</li>
+        <li>A capture earns 2 points, whatever was taken (en passant included). A turn without a capture earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of your turn.</li>
         <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9.</li>
         <li>Knights and Bishops can't be swapped for each other. Kings and Queens can't be upgraded.</li>
         <li>If an upgrade gives check, your turn ends there with no move. That isn't allowed while your own King is in check.</li>
@@ -307,9 +307,9 @@ function insufficient(s){
   // Points keep coming every turn, so any piece besides the Kings can eventually be upgraded to mate.
   return !pcs.length;
 }
-function endTurn(ns,text){
+function endTurn(ns,text,gain=1){
   const mover=ns.turn;
-  ns.points[mover]++; // a capture earns 1 point and a turn without a capture also earns 1
+  ns.points[mover]+=gain; // 2 for a turn with a capture, 1 for any other turn
   ns.turn=other(mover);ns.upgraded=false;ns.pending=null;
   if(mover==='b')ns.full++;
   const k=posKey(ns);ns.rep[k]=(ns.rep[k]||0)+1;
@@ -350,7 +350,7 @@ function doMove(s,mv,promo){
     (p.t==='P'?'':p.t)+sqName(mv.fr,mv.fc)+(cap?'x':'-')+sqName(mv.tr,mv.tc)+(mv.promo?'='+(promo||'Q'):'')+(mv.ep?' e.p.':'');
   if(inCheck(ns.board,other(p.c)))text+='+';
   if(ns.pending)text=ns.pending+' · '+text;
-  return endTurn(ns,text);
+  return endTurn(ns,text,cap?2:1);
 }
 </script>
 
@@ -398,7 +398,7 @@ function statusText(){
   }
   const chk=inCheck(S.board,S.turn);
   if(S.upgraded)return[`${t} upgraded. Now make a move.`,chk?'You are in check and must escape it.':'No more upgrades this turn.'];
-  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. Every turn earns 1 point.')];
+  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. A capture earns 2 points, any other turn 1.')];
 }
 
 function renderPlayers(){

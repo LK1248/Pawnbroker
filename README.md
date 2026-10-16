@@ -5,7 +5,7 @@ A chess variant where every piece except the King starts as a pawn. Every turn e
 ## Rules
 
 - Both back rows start as pawns, apart from the Kings on e1 and e8.
-- A capture earns 1 point, whatever was taken (en passant included). A turn without a capture also earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of the turn, so they can be spent from the player's next turn.
+- A capture earns 2 points, whatever was taken (en passant included). A turn without a capture earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of the turn, so they can be spent from the player's next turn.
 - Before moving, a player may spend points to upgrade **one** piece per turn. The price is the difference in material value: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9. For example, Pawn to Knight costs 2 and Pawn to Queen costs 8.
 - Knights and Bishops can't be converted into each other. Kings and Queens can't be upgraded.
 - If an upgrade gives check, the turn ends there with no move. This isn't allowed while your own King is in check.
