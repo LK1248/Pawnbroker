@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap&text=%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F">
 <style>
-/* Layout: the board is the stage on the left; a narrow broker's ledger (players, upgrade counter, log) runs beside it, stacking under it on phones */
+/* Layout: the rival sits left of the board and the player to move sits right of it (points on top, upgrades below);
+   on phones the rival moves above the board and the player to move below it. Controls, log and rules follow underneath. */
 :root{
   --bg:#E7EBE5; --surface:#F5F7F2; --ink:#1C2420; --muted:#5A675F; --line:#C6CFC4;
   --sq-light:#DAE2D2; --sq-dark:#7A9581; --accent:#9C6C14; --accent-soft:rgba(176,124,28,.14); --accent-ink:#FFF8E6;
@@ -17,8 +18,8 @@
   --body:"Karla",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   --pieces:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Arial Unicode MS",sans-serif;
-  --shop:64px;
-  --board:min(calc(100vw - 32px), 70vh, 600px);
+  --shop:52px; --side:116px;
+  --board:min(calc(100vw - 32px), 60vh, 600px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#111613; --surface:#19201C; --ink:#E3E9E2; --muted:#93A198; --line:#2D3832;
@@ -32,12 +33,16 @@
 }
 *{box-sizing:border-box}
 html,body{min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
-.wrap{max-width:1110px;margin:0 auto;display:grid;gap:20px;grid-template-columns:1fr;justify-items:center}
-@media (min-width:900px){
-  :root{--board:min(calc(100vw - 32px - 340px - var(--shop) - 64px), 86vh, 640px)}
-  .wrap{grid-template-columns:auto var(--shop) 340px;align-items:start;gap:20px;justify-items:stretch}
+.wrap{max-width:940px;margin:0 auto;display:grid;gap:16px;justify-items:center}
+.table{display:grid;grid-template-columns:auto;gap:12px;justify-items:center}
+.side{width:var(--board);display:flex;align-items:center;gap:10px}
+.below{width:100%;max-width:max(var(--board), 600px);display:grid;gap:16px;min-width:0}
+@media (min-width:640px){
+  :root{--shop:64px;--board:min(calc(100vw - 32px - 2 * var(--side) - 64px), 78vh, 640px)}
+  .table{grid-template-columns:var(--side) auto var(--side);align-items:start;gap:20px}
+  .side{width:var(--side);flex-direction:column;align-items:stretch;gap:16px}
 }
 header{grid-column:1/-1;width:100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
@@ -73,10 +78,26 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);lin
 .promo-row button:hover,.promo-row button:focus-visible{background:var(--sel);outline:none}
 .promo-row .pc{font-size:calc(var(--board)/11)}
 
-/* Upgrade column: a row under the board on phones, a column beside it on wide screens */
-.shop{display:flex;align-items:center;gap:8px}
+/* Player cards */
+.card{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:2px}
+.active .card{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.who{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.swatch{flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink)}
+.swatch.w{background:var(--pc-white)}.swatch.b{background:var(--pc-black)}
+.role{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.active .role{color:var(--accent)}
+.purse{display:flex;align-items:baseline;gap:5px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.purse b{font-size:30px;line-height:1.1;font-weight:600;color:var(--accent)}
+.rival .purse b{color:var(--muted)}
+.purse span{color:var(--muted);font-size:12px}
+.card .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.3}
+
+/* Upgrade column under the active player's points; a row on phones */
+.shop{display:flex;align-items:center;gap:6px;flex-direction:column}
 .shop h2{margin:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.shop-btns{display:flex;gap:8px}
+.shop-btns{display:flex;gap:6px}
+.shop-note{margin:0;font-size:12px;color:var(--muted);text-align:center;line-height:1.3}
+@media (max-width:639.98px){.shop h2,.shop-note{display:none}}
 .shop-btn{position:relative;width:var(--shop);height:var(--shop);padding:0;display:grid;place-items:center;border-radius:6px;
   border:1px solid var(--line);background:var(--surface);cursor:pointer;font:inherit}
 .shop-btn .pc{font-size:calc(var(--shop) * .66)}
@@ -86,34 +107,16 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);lin
 .shop-btn:not(:disabled):hover,.shop-btn:focus-visible{background:var(--accent-soft);outline:none}
 .shop-btn:disabled{cursor:not-allowed;opacity:.38;filter:grayscale(1)}
 .shop-btn.cur{opacity:.6;box-shadow:inset 0 0 0 2px var(--muted)}
-@media (min-width:900px){
-  .shop{flex-direction:column;align-self:center}
-  .shop-btns{flex-direction:column}
-}
+@media (min-width:640px){.shop-btns{flex-direction:column}}
 
-/* Ledger */
-.ledger{width:100%;max-width:600px;display:grid;gap:16px;min-width:0}
-.status{font-family:var(--display);font-size:22px;font-weight:500;line-height:1.2;margin:0;text-wrap:balance}
+/* Status and the area under the board */
+.status{width:100%;max-width:calc(var(--board) + 2 * var(--side) + 40px);font-family:var(--display);font-size:22px;font-weight:500;line-height:1.2;margin:0;text-align:center;text-wrap:balance}
 .status small{display:block;font-family:var(--body);font-size:14px;color:var(--muted);margin-top:4px;font-weight:400}
-.players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.player{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:2px;position:relative}
-.player.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.player .who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
-.swatch{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink)}
-.swatch.w{background:var(--pc-white)}.swatch.b{background:var(--pc-black)}
-.turnpip{margin-left:auto;font-size:11px;letter-spacing:.08em;color:var(--accent)}
-.purse{display:flex;align-items:baseline;gap:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
-.purse b{font-size:30px;font-weight:600;color:var(--accent)}
-.purse span{color:var(--muted);font-size:12px}
-.player .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px}
 .panel h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--muted);font-weight:700}
 .panel p{margin:0}
 .muted{color:var(--muted);font-size:13px}
-.prices{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:13px;font-variant-numeric:tabular-nums}
-.prices dt{font-family:var(--mono);color:var(--muted)}
-.prices dd{margin:0}
 
 .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .btn{font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
@@ -139,26 +142,32 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
     <p class="tag">Chess where everyone starts as a pawn. Every turn earns a point; points buy promotions.</p>
   </header>
 
-  <div class="stage">
-    <div class="board" id="board" role="grid" aria-label="Chess board"></div>
-    <div class="promo" id="promo" hidden>
-      <div class="promo-card"><p>Promote pawn to</p><div class="promo-row" id="promoRow"></div>
-        <button class="btn" id="promoCancel" type="button">Cancel</button></div>
+  <p class="status" id="status" aria-live="polite"></p>
+
+  <div class="table">
+    <section class="side rival" aria-label="Rival">
+      <div class="card" id="rivalCard"></div>
+    </section>
+
+    <div class="stage">
+      <div class="board" id="board" role="grid" aria-label="Chess board"></div>
+      <div class="promo" id="promo" hidden>
+        <div class="promo-card"><p>Promote pawn to</p><div class="promo-row" id="promoRow"></div>
+          <button class="btn" id="promoCancel" type="button">Cancel</button></div>
+      </div>
     </div>
+
+    <section class="side active" aria-label="Player to move">
+      <div class="card" id="activeCard"></div>
+      <div class="shop" role="group" aria-labelledby="shopTitle">
+        <h2 id="shopTitle">Upgrade</h2>
+        <div class="shop-btns" id="shopBtns"></div>
+        <p class="shop-note" id="shopNote"></p>
+      </div>
+    </section>
   </div>
 
-  <div class="shop" role="group" aria-labelledby="shopTitle">
-    <h2 id="shopTitle">Upgrade</h2>
-    <div class="shop-btns" id="shopBtns"></div>
-  </div>
-
-  <aside class="ledger">
-    <p class="status" id="status"></p>
-    <div class="players">
-      <div class="player" id="pw"></div>
-      <div class="player" id="pb"></div>
-    </div>
-    <section class="panel" id="counter" aria-live="polite"></section>
+  <div class="below">
     <div class="actions">
       <button class="btn" id="undo" type="button">Undo</button>
       <button class="btn" id="flip" type="button">Flip board</button>
@@ -180,7 +189,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
         <li>If you have no legal move and no legal upgrade, it's checkmate when in check, otherwise stalemate.</li>
       </ul>
     </details>
-  </aside>
+  </div>
 </div>
 
 <script id="engine">
@@ -401,16 +410,17 @@ function statusText(){
   return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. A capture earns 2 points, any other turn 1.')];
 }
 
-function renderPlayers(){
-  for(const col of['w','b']){
-    const el=$('p'+col),on=!S.result&&S.turn===col;
-    el.className='player'+(on?' on':'');
+// The player to move always sits on the right; the rival on the left.
+function renderSides(){
+  const card=(col,role)=>{
     let cnt={};for(const row of S.board)for(const p of row)if(p&&p.c===col&&p.t!=='K'&&p.t!=='P')cnt[p.t]=(cnt[p.t]||0)+1;
     const army=['Q','R','B','N'].filter(t=>cnt[t]).map(t=>`${cnt[t]} ${NAME[t]}${cnt[t]>1?'s':''}`).join(', ')||'Pawns only';
-    el.innerHTML=`<div class="who"><span class="swatch ${col}"></span>${COLOR[col]}${on?'<span class="turnpip">To play</span>':''}</div>
+    return`<div class="who"><span class="swatch ${col}"></span>${COLOR[col]}</div><div class="role">${role}</div>
       <div class="purse"><b>${S.points[col]}</b><span>pts</span></div>
-      <div class="sub">${S.earned[col]} capture${S.earned[col]===1?'':'s'} · ${army}</div>`;
-  }
+      <div class="sub">${S.earned[col]} capture${S.earned[col]===1?'':'s'}</div><div class="sub">${army}</div>`;
+  };
+  $('activeCard').innerHTML=card(S.turn,S.result?'Last to move':'To play');
+  $('rivalCard').innerHTML=card(other(S.turn),'Rival');
 }
 
 function selectedOwn(){
@@ -439,19 +449,11 @@ function renderShop(){
     el.appendChild(b);
   }
 }
-function renderCounter(){
-  const el=$('counter'),pts=S.points[S.turn],head='<h2>Upgrades</h2>';
-  if(S.result){el.innerHTML=head+'<p class="muted">The game is over.</p>';return;}
-  if(S.upgraded){el.innerHTML=head+'<p class="muted">You’ve used this turn’s upgrade. Make your move.</p>';return;}
+function shopNote(){
+  if(S.result)return'Game over';
+  if(S.upgraded)return'Upgrade used this turn';
   const p=selectedOwn();
-  if(!p){
-    el.innerHTML=head+`<p class="muted">Click one of your pieces to see what it can become. You have ${pts} point${pts===1?'':'s'}.</p>
-      <dl class="prices"><dt>2</dt><dd>Pawn → Knight or Bishop; Knight or Bishop → Rook</dd><dt>4</dt><dd>Pawn → Rook; Rook → Queen</dd><dt>6</dt><dd>Knight or Bishop → Queen</dd><dt>8</dt><dd>Pawn → Queen</dd></dl>`;
-    return;
-  }
-  const opts=upgradeOptions(S,sel[0],sel[1]);
-  el.innerHTML=head+`<p class="muted">${NAME[p.t]} on ${sqName(sel[0],sel[1])}. You have ${pts} point${pts===1?'':'s'}.</p>`+
-    (opts.length?`<dl class="prices">${opts.map(o=>`<dt>${o.cost}</dt><dd>${NAME[o.to]}: ${shopInfo(p,o.to,o)}</dd>`).join('')}</dl>`:`<p class="muted">${shopInfo(p,'K')}.</p>`);
+  return p?`${NAME[p.t]} on ${sqName(sel[0],sel[1])}`:'Select a piece to see its upgrades';
 }
 
 function renderLog(){
@@ -467,7 +469,7 @@ function renderLog(){
 
 function render(){
   const[a,b]=statusText();$('status').innerHTML=`${a}<small>${b}</small>`;
-  renderBoard();renderShop();renderPlayers();renderCounter();renderLog();
+  renderBoard();renderSides();renderShop();$('shopNote').textContent=shopNote();renderLog();
   $('undo').disabled=!history.length;
   $('flip').disabled=autoFlip;
   $('autoflip').checked=autoFlip;
