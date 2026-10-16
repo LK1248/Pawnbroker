@@ -1,0 +1,492 @@
+<meta charset="utf-8">
+<title>Pawnbroker Chess</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap&text=%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F">
+<style>
+/* Layout: the board is the stage on the left; a narrow broker's ledger (players, upgrade counter, log) runs beside it, stacking under it on phones */
+:root{
+  --bg:#E7EBE5; --surface:#F5F7F2; --ink:#1C2420; --muted:#5A675F; --line:#C6CFC4;
+  --sq-light:#DAE2D2; --sq-dark:#7A9581; --accent:#9C6C14; --accent-soft:rgba(176,124,28,.14); --accent-ink:#FFF8E6;
+  --sel:rgba(226,178,64,.72); --last:rgba(226,178,64,.38); --dot:rgba(24,32,28,.30); --check:#C4473B; --check-soft:rgba(196,71,59,.16);
+  --pc-white:#FBFAF4; --pc-white-edge:#222B26; --pc-black:#18201B; --pc-black-edge:rgba(240,244,238,.55);
+  --display:"Bodoni Moda",Didot,"Times New Roman",serif;
+  --body:"Karla",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --pieces:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Arial Unicode MS",sans-serif;
+  --board:min(calc(100vw - 32px), 74vh, 600px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#19201C; --ink:#E3E9E2; --muted:#93A198; --line:#2D3832;
+  --sq-light:#B3C0AC; --sq-dark:#577160; --accent:#D9A845; --accent-soft:rgba(217,168,69,.14); --accent-ink:#1B1505;
+  --check:#E0675B; --check-soft:rgba(224,103,91,.18); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#19201C; --ink:#E3E9E2; --muted:#93A198; --line:#2D3832;
+  --sq-light:#B3C0AC; --sq-dark:#577160; --accent:#D9A845; --accent-soft:rgba(217,168,69,.14); --accent-ink:#1B1505;
+  --check:#E0675B; --check-soft:rgba(224,103,91,.18); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:24px;grid-template-columns:1fr;justify-items:center}
+@media (min-width:900px){
+  :root{--board:min(calc(100vw - 32px - 340px - 28px), 86vh, 640px)}
+  .wrap{grid-template-columns:auto 340px;align-items:start;gap:28px;justify-items:stretch}
+}
+header{grid-column:1/-1;width:100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
+.tag{color:var(--muted);margin:0}
+
+/* Board */
+.stage{position:relative;width:var(--board)}
+.board{width:var(--board);height:var(--board);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 12px 32px -18px rgba(0,0,0,.45);user-select:none;-webkit-user-select:none}
+.sq{position:relative;border:0;padding:0;margin:0;display:grid;place-items:center;cursor:pointer;font:inherit;color:inherit;background:var(--sq-light)}
+.sq.dk{background:var(--sq-dark)}
+.sq:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;z-index:2}
+.sq.last::before,.sq.up::before,.sq.sel::before,.sq.chk::before{content:"";position:absolute;inset:0;pointer-events:none}
+.sq.last::before{background:var(--last)}
+.sq.up::before{box-shadow:inset 0 0 0 calc(var(--board)/110) var(--accent);background:var(--accent-soft)}
+.sq.sel::before{background:var(--sel)}
+.sq.chk::before{background:radial-gradient(circle,var(--check) 0%,rgba(196,71,59,.55) 45%,transparent 75%)}
+.sq .dot{position:absolute;width:28%;height:28%;border-radius:50%;background:var(--dot);pointer-events:none}
+.sq .ring{position:absolute;inset:5%;border-radius:50%;box-shadow:inset 0 0 0 calc(var(--board)/100) var(--dot);pointer-events:none}
+.pc{position:relative;font-family:var(--pieces);font-size:calc(var(--board) / 8 * .74);line-height:1;pointer-events:none;transform:translateY(2%)}
+.pc.w{color:var(--pc-white);text-shadow:1px 0 0 var(--pc-white-edge),-1px 0 0 var(--pc-white-edge),0 1px 0 var(--pc-white-edge),0 -1px 0 var(--pc-white-edge),1px 1px 0 var(--pc-white-edge),-1px -1px 0 var(--pc-white-edge),1px -1px 0 var(--pc-white-edge),-1px 1px 0 var(--pc-white-edge),0 3px 4px rgba(0,0,0,.25)}
+.pc.b{color:var(--pc-black);text-shadow:0 0 1px var(--pc-black-edge),0 3px 4px rgba(0,0,0,.25)}
+.coord{position:absolute;font-family:var(--mono);font-size:calc(var(--board)/58);font-weight:600;pointer-events:none;opacity:.75}
+.coord.f{right:5%;bottom:3%}.coord.r{left:5%;top:3%}
+.sq .coord{color:var(--sq-dark)}.sq.dk .coord{color:var(--sq-light)}
+
+.promo{position:absolute;inset:0;background:rgba(10,14,12,.55);display:grid;place-items:center;border-radius:4px}
+.promo[hidden]{display:none!important}
+.promo-card{background:var(--surface);border-radius:8px;padding:16px;display:grid;gap:10px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.promo-card p{margin:0;font-weight:700}
+.promo-row{display:flex;gap:8px}
+.promo-row button{width:calc(var(--board)/7);height:calc(var(--board)/7);border-radius:6px;border:1px solid var(--line);background:var(--sq-light);cursor:pointer;display:grid;place-items:center}
+.promo-row button:hover,.promo-row button:focus-visible{background:var(--sel);outline:none}
+.promo-row .pc{font-size:calc(var(--board)/11)}
+
+/* Ledger */
+.ledger{width:100%;max-width:600px;display:grid;gap:16px;min-width:0}
+.status{font-family:var(--display);font-size:22px;font-weight:500;line-height:1.2;margin:0;text-wrap:balance}
+.status small{display:block;font-family:var(--body);font-size:14px;color:var(--muted);margin-top:4px;font-weight:400}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.player{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:2px;position:relative}
+.player.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.player .who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.swatch{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink)}
+.swatch.w{background:var(--pc-white)}.swatch.b{background:var(--pc-black)}
+.turnpip{margin-left:auto;font-size:11px;letter-spacing:.08em;color:var(--accent)}
+.purse{display:flex;align-items:baseline;gap:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.purse b{font-size:30px;font-weight:600;color:var(--accent)}
+.purse span{color:var(--muted);font-size:12px}
+.player .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px}
+.panel h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--muted);font-weight:700}
+.panel p{margin:0}
+.muted{color:var(--muted);font-size:13px}
+.offers{display:grid;grid-template-columns:1fr;gap:6px}
+.offer{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font:inherit;text-align:left}
+.offer:hover:not(:disabled),.offer:focus-visible{border-color:var(--accent);background:var(--accent-soft);outline:none}
+.offer:disabled{cursor:not-allowed;opacity:.5}
+.offer .pc{font-size:28px;color:var(--ink);text-shadow:none}
+.offer .lbl{display:grid;line-height:1.15;min-width:0}
+.offer .lbl b{font-size:14px}
+.offer .lbl span{font-size:12px;color:var(--muted)}
+.offer .cost{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--accent);white-space:nowrap}
+.offer.chk .lbl span{color:var(--check)}
+.prices{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:13px;font-variant-numeric:tabular-nums}
+.prices dt{font-family:var(--mono);color:var(--muted)}
+.prices dd{margin:0}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--ink);outline:none}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.warn{background:var(--check);border-color:var(--check);color:#fff}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+
+.log{max-height:220px;overflow:auto;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.log table{width:100%;border-collapse:collapse}
+.log td{padding:3px 6px;vertical-align:top}
+.log td:first-child{color:var(--muted);width:2.5em;text-align:right}
+.log tr:nth-child(odd){background:var(--accent-soft)}
+.log .up{color:var(--accent);font-weight:600}
+details.panel summary{cursor:pointer;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+@media (prefers-reduced-motion:no-preference){.sq::before{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Pawnbroker</h1>
+    <p class="tag">Chess where everyone starts as a pawn. Captures earn points; points buy promotions.</p>
+  </header>
+
+  <div class="stage">
+    <div class="board" id="board" role="grid" aria-label="Chess board"></div>
+    <div class="promo" id="promo" hidden>
+      <div class="promo-card"><p>Promote pawn to</p><div class="promo-row" id="promoRow"></div>
+        <button class="btn" id="promoCancel" type="button">Cancel</button></div>
+    </div>
+  </div>
+
+  <aside class="ledger">
+    <p class="status" id="status"></p>
+    <div class="players">
+      <div class="player" id="pw"></div>
+      <div class="player" id="pb"></div>
+    </div>
+    <section class="panel" id="counter" aria-live="polite"></section>
+    <div class="actions">
+      <button class="btn" id="undo" type="button">Undo</button>
+      <button class="btn" id="flip" type="button">Flip board</button>
+      <button class="btn" id="newg" type="button">New game</button>
+      <label class="toggle"><input type="checkbox" id="autoflip"> Turn board each move</label>
+    </div>
+    <section class="panel"><h2>Moves</h2><div class="log" id="log"></div></section>
+    <details class="panel">
+      <summary>House rules</summary>
+      <ul>
+        <li>Both back rows start as pawns, apart from the Kings on e1 and e8.</li>
+        <li>Every capture earns 1 point, whatever was taken (en passant included).</li>
+        <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9.</li>
+        <li>Knights and Bishops can't be swapped for each other. Kings and Queens can't be upgraded.</li>
+        <li>If an upgrade gives check, your turn ends there with no move. That isn't allowed while your own King is in check.</li>
+        <li>An upgrade is only allowed if you'll still have a legal move afterwards (or it gives check).</li>
+        <li>Only pawns on the second row may move two squares. Reaching the far row promotes for free, as usual.</li>
+        <li>Castling needs an unmoved King and an unmoved Rook in the corner. A corner pawn upgraded to a Rook without moving counts.</li>
+        <li>If you have no legal move and no legal upgrade, it's checkmate when in check, otherwise stalemate.</li>
+      </ul>
+    </details>
+  </aside>
+</div>
+
+<script id="engine">
+const FILES='abcdefgh';
+const VAL={P:1,N:3,B:3,R:5,Q:9,K:0};
+const UPG={P:['N','B','R','Q'],N:['R','Q'],B:['R','Q'],R:['Q'],Q:[],K:[]};
+const NAME={P:'Pawn',N:'Knight',B:'Bishop',R:'Rook',Q:'Queen',K:'King'};
+const COLOR={w:'White',b:'Black'};
+const other=c=>c==='w'?'b':'w';
+const inB=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+const sqName=(r,c)=>FILES[c]+(8-r);
+const copyBoard=b=>b.map(row=>row.map(x=>x&&{...x}));
+const clone=s=>JSON.parse(JSON.stringify(s));
+const KN=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+const KG=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const ORTH=[[1,0],[-1,0],[0,1],[0,-1]], DIAG=[[1,1],[1,-1],[-1,1],[-1,-1]];
+
+function newGame(){
+  const b=Array.from({length:8},()=>Array(8).fill(null));
+  for(let c=0;c<8;c++){
+    b[0][c]={t:c===4?'K':'P',c:'b',m:false};
+    b[1][c]={t:'P',c:'b',m:false};
+    b[6][c]={t:'P',c:'w',m:false};
+    b[7][c]={t:c===4?'K':'P',c:'w',m:false};
+  }
+  const s={board:b,turn:'w',points:{w:0,b:0},earned:{w:0,b:0},ep:null,upgraded:false,pending:null,
+    half:0,full:1,log:[],result:null,last:null,lastUp:null,note:null,rep:{}};
+  s.rep[posKey(s)]=1;
+  return s;
+}
+function posKey(s){
+  return s.board.map(r=>r.map(p=>p?p.c+p.t+(p.m?1:0):'..').join('')).join('/')+'|'+s.turn+'|'+s.points.w+','+s.points.b+'|'+(s.ep?s.ep.join(','):'-');
+}
+function findKing(b,col){for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(p&&p.t==='K'&&p.c===col)return[r,c];}return null;}
+function attacked(b,r,c,by){
+  const d=by==='w'?-1:1;
+  for(const dc of[-1,1]){const pr=r-d,pc=c+dc;if(inB(pr,pc)){const p=b[pr][pc];if(p&&p.c===by&&p.t==='P')return true;}}
+  for(const[dr,dc]of KN){const rr=r+dr,cc=c+dc;if(inB(rr,cc)){const p=b[rr][cc];if(p&&p.c===by&&p.t==='N')return true;}}
+  for(const[dr,dc]of KG){const rr=r+dr,cc=c+dc;if(inB(rr,cc)){const p=b[rr][cc];if(p&&p.c===by&&p.t==='K')return true;}}
+  for(const[dirs,ts]of[[ORTH,'RQ'],[DIAG,'BQ']])for(const[dr,dc]of dirs){
+    let rr=r+dr,cc=c+dc;
+    while(inB(rr,cc)){const p=b[rr][cc];if(p){if(p.c===by&&ts.includes(p.t))return true;break;}rr+=dr;cc+=dc;}
+  }
+  return false;
+}
+function inCheck(b,col){const k=findKing(b,col);return !!k&&attacked(b,k[0],k[1],other(col));}
+
+function pseudoMoves(s,r,c){
+  const b=s.board,p=b[r][c],out=[];
+  const add=(tr,tc,x)=>out.push(Object.assign({fr:r,fc:c,tr,tc},x||{}));
+  const can=(tr,tc)=>inB(tr,tc)&&(!b[tr][tc]||b[tr][tc].c!==p.c);
+  if(p.t==='P'){
+    const d=p.c==='w'?-1:1,start=p.c==='w'?6:1,last=p.c==='w'?0:7,r1=r+d;
+    if(inB(r1,c)&&!b[r1][c]){
+      add(r1,c,{promo:r1===last});
+      const r2=r+2*d;
+      if(r===start&&!p.m&&inB(r2,c)&&!b[r2][c])add(r2,c,{double:true});
+    }
+    for(const dc of[-1,1]){
+      const tc=c+dc;if(!inB(r1,tc))continue;
+      const t=b[r1][tc];
+      if(t&&t.c!==p.c)add(r1,tc,{promo:r1===last});
+      else if(!t&&s.ep&&s.ep[0]===r1&&s.ep[1]===tc)add(r1,tc,{ep:true});
+    }
+  }else if(p.t==='N'||p.t==='K'){
+    for(const[dr,dc]of p.t==='N'?KN:KG)if(can(r+dr,c+dc))add(r+dr,c+dc);
+    if(p.t==='K'&&!p.m&&c===4&&r===(p.c==='w'?7:0)&&!inCheck(b,p.c)){
+      const o=other(p.c),rk=b[r][7],rq=b[r][0];
+      if(rk&&rk.t==='R'&&rk.c===p.c&&!rk.m&&!b[r][5]&&!b[r][6]&&!attacked(b,r,5,o)&&!attacked(b,r,6,o))add(r,6,{castle:'K'});
+      if(rq&&rq.t==='R'&&rq.c===p.c&&!rq.m&&!b[r][1]&&!b[r][2]&&!b[r][3]&&!attacked(b,r,3,o)&&!attacked(b,r,2,o))add(r,2,{castle:'Q'});
+    }
+  }else{
+    const dirs=p.t==='R'?ORTH:p.t==='B'?DIAG:ORTH.concat(DIAG);
+    for(const[dr,dc]of dirs){let rr=r+dr,cc=c+dc;
+      while(inB(rr,cc)){const t=b[rr][cc];if(!t)add(rr,cc);else{if(t.c!==p.c)add(rr,cc);break;}rr+=dr;cc+=dc;}}
+  }
+  return out;
+}
+function playOnBoard(b,mv,promo){
+  const p=b[mv.fr][mv.fc];let cap=b[mv.tr][mv.tc];
+  if(mv.ep){cap=b[mv.fr][mv.tc];b[mv.fr][mv.tc]=null;}
+  b[mv.tr][mv.tc]={t:mv.promo?(promo||'Q'):p.t,c:p.c,m:true};
+  b[mv.fr][mv.fc]=null;
+  if(mv.castle==='K'){b[mv.tr][5]={...b[mv.tr][7],m:true};b[mv.tr][7]=null;}
+  if(mv.castle==='Q'){b[mv.tr][3]={...b[mv.tr][0],m:true};b[mv.tr][0]=null;}
+  return cap;
+}
+function legalMoves(s,r,c){
+  const p=s.board[r][c];if(!p)return[];
+  return pseudoMoves(s,r,c).filter(mv=>{const b=copyBoard(s.board);playOnBoard(b,mv);return !inCheck(b,p.c);});
+}
+function hasAnyMove(s,col){
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=s.board[r][c];if(p&&p.c===col&&legalMoves(s,r,c).length)return true;}
+  return false;
+}
+function upgradeOptions(s,r,c){
+  const p=s.board[r][c];if(!p||p.c!==s.turn)return[];
+  const checked=inCheck(s.board,p.c);
+  return UPG[p.t].map(to=>{
+    const cost=VAL[to]-VAL[p.t];let ok=true,reason='',check=false;
+    if(s.result){ok=false;reason='Game over';}
+    else if(s.upgraded){ok=false;reason='One upgrade per turn';}
+    else if(s.points[p.c]<cost){ok=false;reason=`Need ${cost-s.points[p.c]} more`;}
+    else{
+      const b=copyBoard(s.board);b[r][c].t=to;
+      check=inCheck(b,other(p.c));
+      if(check){if(checked){ok=false;reason='Can’t give check while in check';}}
+      else if(!hasAnyMove({...s,board:b},p.c)){ok=false;reason='Leaves you no legal move';}
+    }
+    return{to,cost,ok,reason,check};
+  });
+}
+function hasLegalTurn(s){
+  const col=s.turn;
+  if(hasAnyMove(s,col))return true;
+  if(s.upgraded)return false;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=s.board[r][c];
+    if(p&&p.c===col&&upgradeOptions(s,r,c).some(o=>o.ok))return true;}
+  return false;
+}
+function insufficient(s){
+  const pcs=[];
+  for(const row of s.board)for(const p of row)if(p&&p.t!=='K')pcs.push(p);
+  if(!pcs.length)return true;
+  if(pcs.length===1&&(pcs[0].t==='N'||pcs[0].t==='B')&&s.points[pcs[0].c]<2)return true;
+  return false;
+}
+function endTurn(ns,text){
+  const mover=ns.turn;
+  ns.turn=other(mover);ns.upgraded=false;ns.pending=null;
+  if(mover==='b')ns.full++;
+  const k=posKey(ns);ns.rep[k]=(ns.rep[k]||0)+1;
+  if(!hasLegalTurn(ns)){
+    if(inCheck(ns.board,ns.turn)){ns.result={type:'mate',winner:mover};text=text.replace(/\+$/,'')+'#';}
+    else ns.result={type:'stalemate'};
+  }else if(ns.half>=100)ns.result={type:'fifty'};
+  else if(ns.rep[k]>=3)ns.result={type:'repetition'};
+  else if(insufficient(ns))ns.result={type:'material'};
+  ns.log.push({c:mover,n:mover==='w'?ns.full:ns.full-1,text});
+  return ns;
+}
+function doUpgrade(s,r,c,to){
+  const opt=upgradeOptions(s,r,c).find(o=>o.to===to);
+  if(!opt||!opt.ok)throw new Error('Illegal upgrade');
+  const ns=clone(s),p=ns.board[r][c],from=p.t;
+  p.t=to;ns.points[p.c]-=opt.cost;ns.upgraded=true;ns.half=0;ns.lastUp=[r,c];
+  const text=`↑${sqName(r,c)} ${from}→${to}`;
+  if(opt.check){
+    ns.ep=null;ns.last=null;
+    ns.note=`${COLOR[p.c]}’s upgrade gives check, so the turn ends without a move.`;
+    return endTurn(ns,text+'+');
+  }
+  ns.pending=text;ns.note=null;
+  return ns;
+}
+function doMove(s,mv,promo){
+  const ns=clone(s),p=ns.board[mv.fr][mv.fc];
+  if(!legalMoves(s,mv.fr,mv.fc).some(m=>m.tr===mv.tr&&m.tc===mv.tc))throw new Error('Illegal move');
+  const cap=playOnBoard(ns.board,mv,promo);
+  if(cap){ns.points[p.c]++;ns.earned[p.c]++;}
+  ns.half=(p.t==='P'||cap||s.upgraded)?0:ns.half+1;
+  ns.ep=mv.double?[(mv.fr+mv.tr)/2,mv.fc]:null;
+  ns.last={fr:mv.fr,fc:mv.fc,tr:mv.tr,tc:mv.tc};
+  if(!s.upgraded)ns.lastUp=null;
+  ns.note=null;
+  let text=mv.castle==='K'?'O-O':mv.castle==='Q'?'O-O-O':
+    (p.t==='P'?'':p.t)+sqName(mv.fr,mv.fc)+(cap?'x':'-')+sqName(mv.tr,mv.tc)+(mv.promo?'='+(promo||'Q'):'')+(mv.ep?' e.p.':'');
+  if(inCheck(ns.board,other(p.c)))text+='+';
+  if(ns.pending)text=ns.pending+' · '+text;
+  return endTurn(ns,text);
+}
+</script>
+
+<script>
+const GLYPH={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'};
+const VS='︎';
+const SAVE='pawnbroker-game-v1';
+let S, history=[], sel=null, selMoves=[], pendingPromo=null, flipped=false, autoFlip=false, confirmNew=false;
+const $=id=>document.getElementById(id);
+
+function persist(){try{localStorage.setItem(SAVE,JSON.stringify({S,history:history.slice(-200),flipped,autoFlip}));}catch(e){}}
+function viewFlipped(){return autoFlip?S.turn==='b':flipped;}
+
+function renderBoard(){
+  const el=$('board');el.innerHTML='';
+  const fl=viewFlipped();
+  const checkK=!S.result||S.result.type==='mate'?(inCheck(S.board,S.turn)?findKing(S.board,S.turn):null):null;
+  for(let i=0;i<8;i++)for(let j=0;j<8;j++){
+    const r=fl?7-i:i,c=fl?7-j:j,p=S.board[r][c];
+    const b=document.createElement('button');
+    b.type='button';b.className='sq'+((r+c)%2?' dk':'');
+    const mv=selMoves.find(m=>m.tr===r&&m.tc===c);
+    if(S.last&&((S.last.fr===r&&S.last.fc===c)||(S.last.tr===r&&S.last.tc===c)))b.classList.add('last');
+    if(S.lastUp&&S.lastUp[0]===r&&S.lastUp[1]===c)b.classList.add('up');
+    if(sel&&sel[0]===r&&sel[1]===c)b.classList.add('sel');
+    if(checkK&&checkK[0]===r&&checkK[1]===c)b.classList.add('chk');
+    let label=sqName(r,c);
+    if(p){const s=document.createElement('span');s.className='pc '+p.c;s.textContent=GLYPH[p.t]+VS;b.appendChild(s);label+=`, ${COLOR[p.c]} ${NAME[p.t]}`;}
+    if(mv){const d=document.createElement('span');d.className=(p||mv.ep)?'ring':'dot';b.appendChild(d);label+=', legal move';}
+    if(i===7){const f=document.createElement('span');f.className='coord f';f.textContent=FILES[c];b.appendChild(f);}
+    if(j===0){const f=document.createElement('span');f.className='coord r';f.textContent=8-r;b.appendChild(f);}
+    b.setAttribute('aria-label',label);
+    b.addEventListener('click',()=>onSquare(r,c));
+    el.appendChild(b);
+  }
+}
+
+function statusText(){
+  const t=COLOR[S.turn];
+  if(S.result){
+    const r=S.result;
+    if(r.type==='mate')return[`Checkmate. ${COLOR[r.winner]} wins.`,'Start a new game or undo to look back.'];
+    const why={stalemate:'Stalemate: no legal move and no legal upgrade.',fifty:'Draw by the fifty-move rule.',repetition:'Draw by threefold repetition.',material:'Draw: neither side can force mate.'}[r.type];
+    return['Draw.',why];
+  }
+  const chk=inCheck(S.board,S.turn);
+  if(S.upgraded)return[`${t} upgraded. Now make a move.`,chk?'You are in check and must escape it.':'No more upgrades this turn.'];
+  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. Captures earn 1 point.')];
+}
+
+function renderPlayers(){
+  for(const col of['w','b']){
+    const el=$('p'+col),on=!S.result&&S.turn===col;
+    el.className='player'+(on?' on':'');
+    let cnt={};for(const row of S.board)for(const p of row)if(p&&p.c===col&&p.t!=='K'&&p.t!=='P')cnt[p.t]=(cnt[p.t]||0)+1;
+    const army=['Q','R','B','N'].filter(t=>cnt[t]).map(t=>`${cnt[t]} ${NAME[t]}${cnt[t]>1?'s':''}`).join(', ')||'Pawns only';
+    el.innerHTML=`<div class="who"><span class="swatch ${col}"></span>${COLOR[col]}${on?'<span class="turnpip">To play</span>':''}</div>
+      <div class="purse"><b>${S.points[col]}</b><span>pts</span></div>
+      <div class="sub">${S.earned[col]} capture${S.earned[col]===1?'':'s'} · ${army}</div>`;
+  }
+}
+
+function renderCounter(){
+  const el=$('counter');
+  const head='<h2>Upgrade counter</h2>';
+  if(S.result){el.innerHTML=head+'<p class="muted">The game is over.</p>';return;}
+  if(S.upgraded){el.innerHTML=head+`<p class="muted">You’ve used this turn’s upgrade. Make your move.</p>`;return;}
+  const p=sel&&S.board[sel[0]][sel[1]];
+  if(!p||p.c!==S.turn){
+    el.innerHTML=head+`<p class="muted">Select one of your pieces to see its upgrades. You have ${S.points[S.turn]} point${S.points[S.turn]===1?'':'s'}.</p>
+      <dl class="prices"><dt>2</dt><dd>Pawn → Knight or Bishop; Knight or Bishop → Rook</dd><dt>4</dt><dd>Pawn → Rook; Rook → Queen</dd><dt>6</dt><dd>Knight or Bishop → Queen</dd><dt>8</dt><dd>Pawn → Queen</dd></dl>`;
+    return;
+  }
+  const opts=upgradeOptions(S,sel[0],sel[1]);
+  if(!opts.length){el.innerHTML=head+`<p class="muted">${p.t==='K'?'The King':'A Queen'} can’t be upgraded.</p>`;return;}
+  el.innerHTML=head+`<p class="muted">${NAME[p.t]} on ${sqName(sel[0],sel[1])}:</p><div class="offers"></div>`;
+  const box=el.querySelector('.offers');
+  for(const o of opts){
+    const b=document.createElement('button');b.type='button';b.className='offer'+(o.ok&&o.check?' chk':'');b.disabled=!o.ok;
+    const sub=o.ok?(o.check?'Gives check, ends turn':'Then move'):o.reason;
+    b.innerHTML=`<span class="pc">${GLYPH[o.to]+VS}</span><span class="lbl"><b>${NAME[o.to]}</b><span>${sub}</span></span><span class="cost">${o.cost} pt</span>`;
+    b.addEventListener('click',()=>upgrade(o.to));
+    box.appendChild(b);
+  }
+}
+
+function renderLog(){
+  const rows=[];
+  for(const e of S.log){
+    if(e.c==='w'||!rows.length||rows[rows.length-1].n!==e.n)rows.push({n:e.n});
+    rows[rows.length-1][e.c]=e.text;
+  }
+  const fmt=t=>t?t.replace(/(↑\S+ \S+?)(?=\s·|\+|#|$)/,'<span class="up">$1</span>'):'';
+  $('log').innerHTML=rows.length?`<table>${rows.map(r=>`<tr><td>${r.n}.</td><td>${r.w?fmt(r.w):'…'}</td><td>${fmt(r.b)}</td></tr>`).join('')}</table>`:'<p class="muted">No moves yet.</p>';
+  $('log').scrollTop=$('log').scrollHeight;
+}
+
+function render(){
+  const[a,b]=statusText();$('status').innerHTML=`${a}<small>${b}</small>`;
+  renderBoard();renderPlayers();renderCounter();renderLog();
+  $('undo').disabled=!history.length;
+  $('flip').disabled=autoFlip;
+  $('autoflip').checked=autoFlip;
+  $('newg').textContent=confirmNew?'Confirm new game':'New game';
+  $('newg').classList.toggle('warn',confirmNew);
+  const pr=$('promo');pr.hidden=!pendingPromo;
+  if(pendingPromo){
+    const row=$('promoRow');row.innerHTML='';
+    for(const t of['Q','R','B','N']){const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',NAME[t]);
+      b.innerHTML=`<span class="pc ${S.turn}">${GLYPH[t]+VS}</span>`;b.addEventListener('click',()=>commit(pendingPromo,t));row.appendChild(b);}
+  }
+}
+
+function select(r,c){sel=[r,c];selMoves=legalMoves(S,r,c);}
+function clearSel(){sel=null;selMoves=[];}
+function onSquare(r,c){
+  confirmNew=false;
+  if(S.result||pendingPromo)return;
+  const mv=sel&&selMoves.find(m=>m.tr===r&&m.tc===c);
+  if(mv){if(mv.promo){pendingPromo=mv;render();return;}commit(mv);return;}
+  const p=S.board[r][c];
+  if(p&&p.c===S.turn&&!(sel&&sel[0]===r&&sel[1]===c))select(r,c);else clearSel();
+  render();
+}
+function commit(mv,promo){
+  history.push(S);S=doMove(S,mv,promo);pendingPromo=null;clearSel();persist();render();
+}
+function upgrade(to){
+  if(!sel)return;
+  const[r,c]=sel;history.push(S);S=doUpgrade(S,r,c,to);
+  if(S.upgraded&&!S.result)select(r,c);else clearSel();
+  persist();render();
+}
+$('undo').addEventListener('click',()=>{if(!history.length)return;S=history.pop();pendingPromo=null;clearSel();confirmNew=false;persist();render();});
+$('flip').addEventListener('click',()=>{flipped=!flipped;persist();render();});
+$('autoflip').addEventListener('change',e=>{autoFlip=e.target.checked;persist();render();});
+$('newg').addEventListener('click',()=>{
+  if(!confirmNew&&S.log.length&&!S.result){confirmNew=true;render();return;}
+  confirmNew=false;S=newGame();history=[];pendingPromo=null;clearSel();persist();render();
+});
+$('promoCancel').addEventListener('click',()=>{pendingPromo=null;render();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){pendingPromo=null;clearSel();confirmNew=false;render();}});
+
+function start(data){
+  if(data&&data.S){S=data.S;history=data.history||[];flipped=!!data.flipped;autoFlip=!!data.autoFlip;}
+  else{
+    try{const d=JSON.parse(localStorage.getItem(SAVE)||'null');if(d&&d.S&&d.S.board){S=d.S;history=d.history||[];flipped=!!d.flipped;autoFlip=!!d.autoFlip;}}catch(e){}
+    if(!S)S=newGame();
+  }
+  render();
+}
+window.claude?.hot?.snapshot?.(()=>({S,history,flipped,autoFlip}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
