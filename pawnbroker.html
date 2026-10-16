@@ -174,7 +174,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
       <ul>
         <li>Both back rows start as pawns, apart from the Kings on e1 and e8.</li>
         <li>A capture earns 2 points, whatever was taken (en passant included). A turn without a capture earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of your turn.</li>
-        <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9.</li>
+        <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value (Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9) plus a 2-point fee. For example, Pawn to Bishop costs 4 and Pawn to Queen costs 10.</li>
         <li>Knights and Bishops can't be swapped for each other. Kings and Queens can't be upgraded.</li>
         <li>If an upgrade gives check, your turn ends there with no move. That isn't allowed while your own King is in check.</li>
         <li>An upgrade is only allowed if you'll still have a legal move afterwards (or it gives check).</li>
@@ -190,6 +190,7 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
 const FILES='abcdefgh';
 const VAL={P:1,N:3,B:3,R:5,Q:9,K:0};
 const UPG={P:['N','B','R','Q'],N:['R','Q'],B:['R','Q'],R:['Q'],Q:[],K:[]};
+const FEE=2; // flat charge on every upgrade, so saving up for a big jump beats buying in small steps
 const NAME={P:'Pawn',N:'Knight',B:'Bishop',R:'Rook',Q:'Queen',K:'King'};
 const COLOR={w:'White',b:'Black'};
 const other=c=>c==='w'?'b':'w';
@@ -283,7 +284,7 @@ function upgradeOptions(s,r,c){
   const p=s.board[r][c];if(!p||p.c!==s.turn)return[];
   const checked=inCheck(s.board,p.c);
   return UPG[p.t].map(to=>{
-    const cost=VAL[to]-VAL[p.t];let ok=true,reason='',check=false;
+    const cost=VAL[to]-VAL[p.t]+FEE;let ok=true,reason='',check=false;
     if(s.result){ok=false;reason='Game over';}
     else if(s.upgraded){ok=false;reason='One upgrade per turn';}
     else if(s.points[p.c]<cost){ok=false;reason=`Need ${cost-s.points[p.c]} more`;}
