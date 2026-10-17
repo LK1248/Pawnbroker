@@ -20,7 +20,7 @@ A chess variant where every piece except the King starts as a pawn. Every turn e
 
 Play online at **https://lk1248.github.io/Pawnbroker/**.
 
-`pawnbroker.html` is a single self-contained page. Open it in a browser, or serve the folder locally:
+The game is `pawnbroker.html` plus `engine.js`; keep them in the same folder. Open the page in a browser, or serve the folder locally:
 
 ```bash
 python -m http.server 8731
@@ -28,11 +28,21 @@ python -m http.server 8731
 
 Then visit http://localhost:8731/pawnbroker.html.
 
-Two players share one screen. The game state is saved in the browser's local storage.
+Two players share one screen. The game is saved in the browser's local storage.
 
 ## Code layout
 
-The rules engine lives in the `<script id="engine">` block and doesn't touch the DOM. The UI script below it only calls `newGame`, `legalMoves`, `doMove`, `doUpgrade` and `upgradeOptions`. A computer opponent or remote play can reuse the engine as it is.
+- `engine.js`: the rules engine. It doesn't touch the page, so the game page, the self-play tools in `sim/` and later the computer opponent and online play all use exactly the same rules.
+- `pawnbroker.html`: the board, panels and controls.
+
+A game is stored as a list of **actions**, and the current position is whatever replaying them gives:
+
+```js
+{type: 'upgrade', at: 'c2', piece: 'N'}
+{type: 'move', from: 'c2', to: 'b4'}          // plus promo: 'Q' | 'R' | 'B' | 'N' when a pawn promotes
+```
+
+`applyAction(state, action)` checks and plays one action (it throws if the action is illegal), and `replay(actions)` rebuilds a game from the start. Saving, undo and, later, online play all work on this list.
 
 ## Planned
 

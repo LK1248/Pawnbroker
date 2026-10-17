@@ -1,4 +1,4 @@
-// Self-play harness for Pawnbroker. Runs in a Web Worker with the engine block of pawnbroker.html
+// Self-play harness for Pawnbroker. Runs in a Web Worker with ../engine.js
 // prepended (see run.html), so it uses the real rules functions: legalMoves, upgradeOptions,
 // doUpgrade, doMove, hasLegalTurn, inCheck. Search uses light copies of the state built from the
 // same engine helpers (copyBoard, playOnBoard, pseudoMoves); the game itself is always advanced

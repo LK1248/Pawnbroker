@@ -3,14 +3,13 @@
 <title>Pawnbroker self-play</title>
 <pre id="out">loading…</pre>
 <script>
-// Builds Web Workers from the live engine block of ../pawnbroker.html plus harness.js,
+// Builds Web Workers from the live ../engine.js plus harness.js,
 // farms games out to them, and appends each finished game to sim/results/<name> via server.py.
 let SRC=null; const PROG={done:0,total:0,running:false,errors:0,ms:0};
 async function load(){
-  const html=await (await fetch('../pawnbroker.html')).text();
-  const m=html.match(/<script id="engine">([\s\S]*?)<\/script>/);
+  const eng=await (await fetch('../engine.js')).text();
   const h=await (await fetch('harness.js')).text();
-  SRC=URL.createObjectURL(new Blob([m[1]+'\n'+h],{type:'text/javascript'}));
+  SRC=URL.createObjectURL(new Blob([eng+'\n'+h],{type:'text/javascript'}));
   document.getElementById('out').textContent='ready';
 }
 const ready=load();

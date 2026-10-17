@@ -252,7 +252,7 @@ These A columns use different seeds and AI settings from the baseline section ab
 ## Files
 
 - `sim/harness.js`: AI, game runner, invariant checks
-- `sim/run.html`: loads the engine from `pawnbroker.html` and drives the workers
+- `sim/run.html`: loads the engine (now `engine.js`; at the time of these runs it was the `<script id="engine">` block of `pawnbroker.html`, with identical code) and drives the workers
 - `sim/server.py`: static server plus result saving
 - `sim/analyze.py`: the tables in this report
 - `sim/analyze_variants.py`: the variant comparison (`python sim/analyze_variants.py sim/results/variants_ok.jsonl sim/results/variants2.jsonl sim/results/variants_e.jsonl`)
