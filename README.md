@@ -18,6 +18,8 @@ A chess variant where every piece except the King starts as a pawn. Every turn e
 
 ## Running it
 
+Play online at **https://lk1248.github.io/Pawnbroker/**.
+
 `pawnbroker.html` is a single self-contained page. Open it in a browser, or serve the folder locally:
 
 ```bash
