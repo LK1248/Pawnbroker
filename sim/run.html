@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pawnbroker self-play</title>
+<pre id="out">loading…</pre>
+<script>
+// Builds Web Workers from the live engine block of ../pawnbroker.html plus harness.js,
+// farms games out to them, and appends each finished game to sim/results/<name> via server.py.
+let SRC=null; const PROG={done:0,total:0,running:false,errors:0,ms:0};
+async function load(){
+  const html=await (await fetch('../pawnbroker.html')).text();
+  const m=html.match(/<script id="engine">([\s\S]*?)<\/script>/);
+  const h=await (await fetch('harness.js')).text();
+  SRC=URL.createObjectURL(new Blob([m[1]+'\n'+h],{type:'text/javascript'}));
+  document.getElementById('out').textContent='ready';
+}
+const ready=load();
+// patch: optional [from,to] text replacement in the engine copy, for what-if rule batches only.
+async function startBatch(jobs,outName,nWorkers,patch){
+  await ready;
+  let src=SRC;
+  if(patch){const txt=await (await fetch(SRC)).text(); if(!txt.includes(patch[0]))throw new Error('patch target missing');
+    src=URL.createObjectURL(new Blob([txt.replace(patch[0],patch[1])],{type:'text/javascript'}));}
+  nWorkers=nWorkers||Math.max(1,(navigator.hardwareConcurrency||4)-1);
+  PROG.done=0;PROG.total=jobs.length;PROG.running=true;PROG.errors=0;PROG.ms=0;
+  const queue=jobs.slice();
+  const runOne=w=>new Promise(res=>{
+    const next=()=>{
+      const j=queue.shift(); if(!j){w.terminate();return res();}
+      w.onmessage=async e=>{
+        let ok=false;
+        for(let k=0;k<5&&!ok;k++){try{ok=(await fetch('/save?append=1&name='+outName,{method:'POST',body:JSON.stringify(e.data)})).ok;}catch(err){}}
+        if(!ok)PROG.errors++;
+        PROG.done++;PROG.ms+=e.data.ms||0;
+        document.getElementById('out').textContent=`${PROG.done}/${PROG.total}`;
+        next();
+      };
+      w.postMessage(j);
+    };
+    next();
+  });
+  await Promise.all(Array.from({length:nWorkers},()=>runOne(new Worker(src))));
+  PROG.running=false;
+}
+</script>
