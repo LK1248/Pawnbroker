@@ -176,11 +176,12 @@ details.panel ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5p
         <li>A capture earns 2 points, whatever was taken (en passant included). A turn without a capture earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of your turn.</li>
         <li>Before moving, you may spend points to upgrade one piece. The price is the difference in value (Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9) plus a 2-point fee. For example, Pawn to Bishop costs 4 and Pawn to Queen costs 10.</li>
         <li>Knights and Bishops can't be swapped for each other. Kings and Queens can't be upgraded.</li>
-        <li>If an upgrade gives check, your turn ends there with no move. That isn't allowed while your own King is in check.</li>
+        <li>If an upgrade gives check, your turn ends there with no move.</li>
+        <li>You can't upgrade while your King is in check. Answer the check with a move.</li>
         <li>An upgrade is only allowed if you'll still have a legal move afterwards (or it gives check).</li>
         <li>Only pawns on the second row may move two squares. Reaching the far row promotes for free, as usual.</li>
         <li>Castling needs an unmoved King and an unmoved Rook in the corner. A corner pawn upgraded to a Rook without moving counts.</li>
-        <li>If you have no legal move and no legal upgrade, it's checkmate when in check, otherwise stalemate.</li>
+        <li>In check with no legal move is checkmate. Not in check, with no legal move and no legal upgrade, is stalemate.</li>
       </ul>
     </details>
   </div>
@@ -287,12 +288,12 @@ function upgradeOptions(s,r,c){
     const cost=VAL[to]-VAL[p.t]+FEE;let ok=true,reason='',check=false;
     if(s.result){ok=false;reason='Game over';}
     else if(s.upgraded){ok=false;reason='One upgrade per turn';}
+    else if(checked){ok=false;reason='Can’t upgrade while in check';}
     else if(s.points[p.c]<cost){ok=false;reason=`Need ${cost-s.points[p.c]} more`;}
     else{
       const b=copyBoard(s.board);b[r][c].t=to;
       check=inCheck(b,other(p.c));
-      if(check){if(checked){ok=false;reason='Can’t give check while in check';}}
-      else if(!hasAnyMove({...s,board:b},p.c)){ok=false;reason='Leaves you no legal move';}
+      if(!check&&!hasAnyMove({...s,board:b},p.c)){ok=false;reason='Leaves you no legal move';}
     }
     return{to,cost,ok,reason,check};
   });
@@ -340,9 +341,17 @@ function doUpgrade(s,r,c,to){
   ns.pending=text;ns.note=null;
   return ns;
 }
-function doMove(s,mv,promo){
+// Only the from/to squares and the promotion choice are taken from the caller. The move's flags
+// (castle, en passant, double step, promotion) always come from the engine's own legal move.
+function doMove(s,req,promo){
+  if(s.result)throw new Error('Game is over');
+  const own=inB(req.fr,req.fc)&&s.board[req.fr][req.fc];
+  if(!own||own.c!==s.turn)throw new Error('Not your piece');
+  const mv=legalMoves(s,req.fr,req.fc).find(m=>m.tr===req.tr&&m.tc===req.tc);
+  if(!mv)throw new Error('Illegal move');
+  if(!mv.promo)promo=undefined;
+  else if(!['Q','R','B','N'].includes(promo))throw new Error('Promotion needs Q, R, B or N');
   const ns=clone(s),p=ns.board[mv.fr][mv.fc];
-  if(!legalMoves(s,mv.fr,mv.fc).some(m=>m.tr===mv.tr&&m.tc===mv.tc))throw new Error('Illegal move');
   const cap=playOnBoard(ns.board,mv,promo);
   if(cap)ns.earned[p.c]++;
   ns.half=(p.t==='P'||cap||s.upgraded)?0:ns.half+1;
@@ -351,7 +360,7 @@ function doMove(s,mv,promo){
   if(!s.upgraded)ns.lastUp=null;
   ns.note=null;
   let text=mv.castle==='K'?'O-O':mv.castle==='Q'?'O-O-O':
-    (p.t==='P'?'':p.t)+sqName(mv.fr,mv.fc)+(cap?'x':'-')+sqName(mv.tr,mv.tc)+(mv.promo?'='+(promo||'Q'):'')+(mv.ep?' e.p.':'');
+    (p.t==='P'?'':p.t)+sqName(mv.fr,mv.fc)+(cap?'x':'-')+sqName(mv.tr,mv.tc)+(mv.promo?'='+promo:'')+(mv.ep?' e.p.':'');
   if(inCheck(ns.board,other(p.c)))text+='+';
   if(ns.pending)text=ns.pending+' · '+text;
   return endTurn(ns,text,cap?2:1);
@@ -402,7 +411,8 @@ function statusText(){
   }
   const chk=inCheck(S.board,S.turn);
   if(S.upgraded)return[`${t} upgraded. Now make a move.`,chk?'You are in check and must escape it.':'No more upgrades this turn.'];
-  return[`${t} to play${chk?', in check':''}.`,S.note||(S.points[S.turn]>=2?'Upgrade a piece first if you like, then move.':'Move a piece. A capture earns 2 points, any other turn 1.')];
+  return[`${t} to play${chk?', in check':''}.`,chk?(S.note?S.note+' ':'')+'Answer the check with a move; upgrades are off while in check.':
+    S.note||(S.points[S.turn]>=2+FEE?'Upgrade a piece first if you like, then move.':'Move a piece. A capture earns 2 points, any other turn 1.')];
 }
 
 // The player to move always sits on the right; the rival on the left.

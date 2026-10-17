@@ -8,11 +8,12 @@ A chess variant where every piece except the King starts as a pawn. Every turn e
 - A capture earns 2 points, whatever was taken (en passant included). A turn without a capture earns 1 point, including a turn ended by a checking upgrade. Points arrive at the end of the turn, so they can be spent from the player's next turn.
 - Before moving, a player may spend points to upgrade **one** piece per turn. The price is the difference in material value (Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9) plus a flat 2-point fee. For example, Pawn to Knight costs 4 and Pawn to Queen costs 10, while reaching a Queen in three steps costs 14. The fee rewards saving up for a big upgrade.
 - Knights and Bishops can't be converted into each other. Kings and Queens can't be upgraded.
-- If an upgrade gives check, the turn ends there with no move. This isn't allowed while your own King is in check.
+- If an upgrade gives check, the turn ends there with no move.
+- No upgrades are allowed while your own King is in check: a check must be answered with a move. Banked points can't buy a way out of mate.
 - An upgrade that doesn't give check is only allowed if you still have a legal move afterwards.
 - Only pawns on the second row may move two squares. Reaching the far row promotes for free, as in standard chess.
 - Castling needs an unmoved King and an unmoved Rook in the corner. A corner pawn upgraded to a Rook without moving counts as an unmoved Rook.
-- A player with no legal move and no legal upgrade is checkmated if in check, and stalemated otherwise.
+- A player in check with no legal move is checkmated. A player not in check with no legal move and no legal upgrade is stalemated.
 - The other draw rules are standard: threefold repetition (point totals count as part of the position), the 50-move rule (upgrades reset the count) and insufficient material, which only applies to King against King because points keep coming in.
 
 ## Running it
